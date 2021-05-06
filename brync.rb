@@ -3,7 +3,7 @@ class Brync < Formula
     desc "A brightness syncing service."
     homepage "https://github.com/kvndrsslr/brync"
     url "https://github.com/kvndrsslr/brync/archive/refs/tags/0.1.tar.gz"
-    sha256 "4feec735794cf22eeb6f985d661b9cd2e7dcddf71d8f6b69ea2de9387627b9ac"
+    sha256 "75c9934e3e2a0c5a1c14f0be905bda72a4ce864b516d189abf6caad673a8512b"
   
     depends_on :macos => :high_sierra
     depends_on "brightness"
