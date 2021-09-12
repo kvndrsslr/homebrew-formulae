@@ -10,7 +10,7 @@ class OpenpomodoroCli < Formula
 
   def install
     bin.mkpath
-    bin.install "openpomodoro-cli" "pomodoro"
+    bin.install "pomodoro"
   end
   
 end
