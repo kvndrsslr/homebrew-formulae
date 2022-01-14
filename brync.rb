@@ -9,6 +9,7 @@ class Brync < Formula
   depends_on "brightness"
   depends_on "ddcctl"
   depends_on "zsh"
+  depends_on "gnu-sed"
 
   def install
     bin.install "#{buildpath}/brync"
