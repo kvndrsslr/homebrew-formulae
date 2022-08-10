@@ -3,7 +3,7 @@
 # frozen_string_literal: true
 
 # kyabai.rb
-class Fyabai < Formula
+class Kyabai < Formula
   env :std
   desc "Fork of Yabai for my personal use"
   homepage "https://github.com/kvndrsslr/yabai"
