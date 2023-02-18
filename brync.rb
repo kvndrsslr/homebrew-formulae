@@ -19,7 +19,7 @@ class Brync < Formula
     run "#{opt_bin}/brync"
     environment_variables PATH: "#{HOMEBREW_PREFIX}/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     keep_alive true
-    start_interval 10
+    interval 10
     process_type :background
   end
   
