@@ -15,39 +15,45 @@ class Brync < Formula
     bin.install "#{buildpath}/brync"
   end
 
-  plist_options :manual => "brync"
-  
-  def plist; <<~EOS
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-      <key>Label</key>
-      <string>#{plist_name}</string>
-      <key>ProgramArguments</key>
-      <array>
-        <string>#{opt_bin}/brync</string>
-      </array>
-      <key>EnvironmentVariables</key>
-      <dict>
-        <key>PATH</key>
-        <string>#{HOMEBREW_PREFIX}/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-      </dict>
-      <key>RunAtLoad</key>
-      <true/>
-      <key>StartInterval</key>
-      <integer>10</integer>
-      <key>KeepAlive</key>
-      <true/>
-      <key>StandardOutPath</key>
-      <string>#{var}/log/brync/brync.out.log</string>
-      <key>StandardErrorPath</key>
-      <string>#{var}/log/brync/brync.err.log</string>
-      <key>ProcessType</key>
-      <string>Background</string>
-    </dict>
-    </plist>
-    EOS
+  service do
+    run "#{opt_bin}/brync"
+    environment_variables PATH: "#{HOMEBREW_PREFIX}/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    keep_alive true
+    start_interval 10
+    process_type :background
   end
+  
+#   def plist; <<~EOS
+#     <?xml version="1.0" encoding="UTF-8"?>
+#     <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+#     <plist version="1.0">
+#     <dict>
+#       <key>Label</key>
+#       <string>#{plist_name}</string>
+#       <key>ProgramArguments</key>
+#       <array>
+#         <string>#{opt_bin}/brync</string>
+#       </array>
+#       <key>EnvironmentVariables</key>
+#       <dict>
+#         <key>PATH</key>
+#         <string></string>
+#       </dict>
+#       <key>RunAtLoad</key>
+#       <true/>
+#       <key>StartInterval</key>
+#       <integer>10</integer>
+#       <key>KeepAlive</key>
+#       <true/>
+#       <key>StandardOutPath</key>
+#       <string>#{var}/log/brync/brync.out.log</string>
+#       <key>StandardErrorPath</key>
+#       <string>#{var}/log/brync/brync.err.log</string>
+#       <key>ProcessType</key>
+#       <string>Background</string>
+#     </dict>
+#     </plist>
+#     EOS
+#   end
   
 end
