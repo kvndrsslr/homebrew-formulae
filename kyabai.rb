@@ -20,11 +20,13 @@ class Kyabai < Formula
   def install
     clear_env
     (var/"log/yabai").mkpath
+    man.mkpath
 
     system "make", "-j1", "install"
     system "codesign", "--force", "-s", "-", "#{buildpath}/bin/yabai"
 
     bin.install "#{buildpath}/bin/yabai"
+    man1.install "#{buildpath}/doc/yabai.1"
   end
 
   service do
