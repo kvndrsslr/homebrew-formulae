@@ -2,8 +2,8 @@ class Kxdesk < Formula
   desc "Personal desktop daemon for SketchyBar, yabai and friends"
   homepage "https://github.com/kvndrsslr/kxdesk"
   url "https://github.com/kvndrsslr/kxdesk.git",
-      tag:      "v0.1.16",
-      revision: "42a1aeca189124bb4df26776d75b23f267a017b1"
+      tag:      "v0.1.17",
+      revision: "5a1da97d12d648467c0496df726d664a6038213c"
   head "https://github.com/kvndrsslr/kxdesk.git", branch: "main"
 
   depends_on "terminal-notifier"
