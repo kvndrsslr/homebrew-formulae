@@ -1,4 +1,4 @@
-class SketchybarDaily < Formula
+class Kxsketchybar < Formula
   desc "Status bar for macOS with the badge, ring and wake-retention PR stack"
   homepage "https://github.com/kvndrsslr/SketchyBar"
   url "https://github.com/kvndrsslr/SketchyBar.git",
@@ -32,12 +32,12 @@ class SketchybarDaily < Formula
         and a local guard so `topmost` only re-creates the bar when it changes.
 
       Back to the released SketchyBar:
-        brew services stop sketchybar-daily
-        brew uninstall sketchybar-daily
+        brew services stop kxsketchybar
+        brew uninstall kxsketchybar
         brew install sketchybar
         brew services start sketchybar
 
-      Logs: #{var}/log/sketchybar-daily.out.log, #{var}/log/sketchybar-daily.err.log
+      Logs: #{var}/log/kxsketchybar.out.log, #{var}/log/kxsketchybar.err.log
     EOS
   end
 
