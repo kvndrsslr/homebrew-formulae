@@ -6,6 +6,7 @@ class SketchybarDaily < Formula
       revision: "430c0337fe30570f9c2b1937c1c4ff6bfb6b61d9"
   head "https://github.com/kvndrsslr/SketchyBar.git", branch: "daily"
   license "GPL-3.0-only"
+  version "2.24.0-daily.1"
 
   # Both install bin/sketchybar: uninstall the released formula first.
   conflicts_with "sketchybar", because: "both install a sketchybar binary"
