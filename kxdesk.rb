@@ -2,8 +2,8 @@ class Kxdesk < Formula
   desc "Personal desktop daemon for SketchyBar, yabai and friends"
   homepage "https://github.com/kvndrsslr/kxdesk"
   url "https://github.com/kvndrsslr/kxdesk.git",
-      tag:      "v0.1.7",
-      revision: "4fcaca8e018681a9a205b1c4ff13eec6490d758a"
+      tag:      "v0.1.8",
+      revision: "a327bcf58cc0e804ff8102f187134e8bb7a11dc0"
   head "https://github.com/kvndrsslr/kxdesk.git", branch: "main"
 
   depends_on "zig" => :build
