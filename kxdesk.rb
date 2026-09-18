@@ -3,7 +3,7 @@ class Kxdesk < Formula
   homepage "https://github.com/kvndrsslr/kxdesk"
   url "https://github.com/kvndrsslr/kxdesk.git",
       tag:      "v0.1.0",
-      revision: "f1758f6024b4056896bd7880816fbd1204c50a42"
+      revision: "ef40ad130559b259c71085ed4604dc920a6e15a9"
   head "https://github.com/kvndrsslr/kxdesk.git", branch: "main"
 
   depends_on "zig" => :build
