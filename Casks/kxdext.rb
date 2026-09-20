@@ -61,11 +61,14 @@ cask "kxdext" do
       </plist>
     PLIST
 
-    run "/bin/sh", args: ["-c", "cat > #{daemon_plist} <<'PLIST'\n#{plist}\nPLIST"], sudo: true
-    # Idempotent: an upgrade lands here with the job already loaded.
-    run "/bin/launchctl", args: ["bootout", "system/#{daemon_label}"],
-                            sudo: true, must_succeed: false
-    run "/bin/launchctl", args: ["bootstrap", "system", daemon_plist], sudo: true
+    # One root step for the job: the plist, then the load. `bootout` is only for
+    # a reinstall, where the job is already loaded - on a first install there is
+    # nothing to boot out and it says so on stderr, which reads like a failure.
+    run "/bin/sh",
+        args: ["-c", "cat > #{daemon_plist} <<'PLIST'\n#{plist}\nPLIST\n" \
+                     "launchctl bootout system/#{daemon_label} 2>/dev/null || true\n" \
+                     "launchctl bootstrap system #{daemon_plist}"],
+        sudo: true
 
     # Installed but inactive, and an inactive dext is a driver kanata cannot grab
     # through. pqrs's own activation command; macOS still asks for approval of
