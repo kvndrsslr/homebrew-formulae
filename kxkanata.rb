@@ -62,6 +62,10 @@ class Kxkanata < Formula
 
   def caveats
     <<~EOS
+      The driver kanata seizes the keyboard through comes from the kxdext cask:
+
+        brew install --cask kvndrsslr/formulae/kxdext
+
       Two grants are needed once, and macOS asks for neither by itself:
 
         System Settings > Privacy & Security > Input Monitoring
