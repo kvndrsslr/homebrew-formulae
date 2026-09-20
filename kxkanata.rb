@@ -66,15 +66,17 @@ class Kxkanata < Formula
 
         brew install --cask kvndrsslr/formulae/kxdext
 
-      This service runs as root, and root keeps its own trust store - your own
+      This service runs as root, and root reads its own trust store - your own
       brew already trusts the tap, which is why installing worked and starting
       did not. `brew trust` refuses to run as root, so root's store is written
-      once, by hand, and then starting works from then on:
+      once, by hand:
 
-        sudo install -d -m 700 /var/root/.homebrew
-        sudo tee /var/root/.homebrew/trust.json >/dev/null <<'JSON'
-        {"trustedtaps":["kvndrsslr/formulae"],"trustedformulae":["kvndrsslr/formulae/kxkanata"]}
-        JSON
+        install -d -m 700 ~/.homebrew
+        printf '%s\n' '{"trustedtaps":["kvndrsslr/formulae"]}' > ~/.homebrew/trust.json
+
+      That path is the one brew derives for root here - with XDG_CONFIG_HOME
+      unset, `Homebrew::Trust.trust_file` answers ~/.homebrew/trust.json for the
+      invoking user's home, and root's sudo invocation lands on the same file.
 
       Two grants are needed once, and macOS asks for neither by itself:
 
