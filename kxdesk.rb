@@ -28,6 +28,11 @@ class Kxdesk < Formula
     run [opt_bin/"kxdesk", "daemon"]
     keep_alive true
     process_type :interactive
+    # Without these the daemon's output goes nowhere, and a failing command -
+    # a kanata action that could not be carried out, a bar update that was
+    # refused - is silent. The same paths the core kanata formula uses.
+    log_path var/"log/kxdesk.log"
+    error_log_path var/"log/kxdesk.log"
   end
 
   test do
