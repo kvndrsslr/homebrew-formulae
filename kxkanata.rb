@@ -57,6 +57,16 @@ class Kxkanata < Formula
       # everything attached. That is the one path that registers new devices.
       # A restart is a couple of seconds of plain typing, and the backoff keeps
       # a persistent failure from looping.
+      #
+      # The check is only as good as its idea of what kanata should be holding.
+      # A name in the config's `macos-dev-names-exclude` is one kanata filters
+      # out of the list it registers devices from, so it can never hold it: the
+      # path kanata was given is passed to the same check, which reads those
+      # names and reports them as `excluded` instead of as a gap. Without that,
+      # a mouse whose Bluetooth HID service reports primary usage keyboard - a
+      # Logitech MX Anywhere 2 does, with the pointer in the same device - would
+      # read as a keyboard missing on every wake, and this loop would restart
+      # kanata for a device it was told to leave alone.
       set -u
 
       KANATA="#{HOMEBREW_PREFIX}/bin/kanata"
@@ -70,6 +80,31 @@ class Kxkanata < Formula
       restarting=0
       backoff=0
       last_restart=0
+
+      # kanata reads the devices it must skip from its config and nowhere else,
+      # so the check needs the same file: the path out of the arguments meant
+      # for kanata is the one it was configured with.
+      cfg=
+      want_cfg=0
+      for arg in "$@"; do
+        if [ "$want_cfg" = 1 ]; then
+          cfg=$arg
+          want_cfg=0
+          continue
+        fi
+        case $arg in
+          -c|--cfg) want_cfg=1 ;;
+          --cfg=*) cfg=${arg#--cfg=} ;;
+        esac
+      done
+
+      devices() {
+        if [ -n "$cfg" ]; then
+          "$DEVICES" --cfg "$cfg"
+        else
+          "$DEVICES"
+        fi
+      }
 
       start() {
         "$KANATA" --no-wait -p "$PORT" "$@" &
@@ -117,7 +152,7 @@ class Kxkanata < Formula
           continue
         fi
 
-        "$DEVICES" >/dev/null 2>&1
+        devices >/dev/null 2>&1
         check=$?
         if [ "$check" -eq 0 ]; then
           backoff=0
@@ -137,7 +172,7 @@ class Kxkanata < Formula
           backoff=$((backoff * 2))
         fi
         echo "kxkanata: keyboard attached but not grabbed; restarting kanata"
-        "$DEVICES" 2>/dev/null | awk '/^MISSING/ { print "kxkanata:   " $0 }'
+        devices 2>/dev/null | awk '/^MISSING/ { print "kxkanata:   " $0 }'
         restarting=1
         stop
         start "$@"
@@ -162,27 +197,172 @@ class Kxkanata < Formula
       # This reads the HID device tree and names every keyboard-interface
       # device kanata is not holding, the way IORegistry shows it: a device
       # kanata seized has an IOHIDLibUserClient whose IOUserClientCreator
-      # names the kanata process. Exit codes: 0 every keyboard held, 1 at
-      # least one missing while the grab is otherwise active, 2 the grab is
-      # not active at all (kanata down, or it released everything), 3 the
-      # device tree could not be read. kxkanata restarts kanata only on 1.
+      # names the kanata process.
+      #
+      # With --cfg, the `macos-dev-names-exclude` list in that config is read as
+      # well, and a name from it is reported as `excluded` rather than `MISSING`.
+      # kanata filters those names out of the very list it registers devices from,
+      # so it cannot grab them: restarting it would change nothing and would only
+      # drop the grab for the seconds it takes to come back. The comparison is the
+      # one kanata makes - string equality against the name it enumerates, which is
+      # the name printed here. Only the defcfg form is read, and without --cfg this
+      # reports every keyboard-interface device the way it did before.
+      #
+      # Exit codes: 0 every keyboard held, 1 at least one missing while the grab
+      # is otherwise active, 2 the grab is not active at all (kanata down, or it
+      # released everything), 3 the device tree could not be read. kxkanata
+      # restarts kanata only on 1.
+      #
+      # Usage: kxkanata-devices [--cfg <kanata.kbd>]
       LC_ALL=C
       export LC_ALL
 
-      LC_ALL=C /usr/sbin/ioreg -r -c IOHIDDevice -l -w0 2>/dev/null | awk '
-      BEGIN { held_count = 0; missing_count = 0 }
+      cfg=
+      while [ $# -gt 0 ]; do
+        case $1 in
+          --cfg)
+            shift
+            cfg=${1-}
+            if [ -z "$cfg" ]; then
+              echo "kxkanata-devices: --cfg needs a path" >&2
+              exit 3
+            fi
+            ;;
+          --cfg=*) cfg=${1#--cfg=} ;;
+          *)
+            echo "kxkanata-devices: unknown argument: $1" >&2
+            exit 3
+            ;;
+        esac
+        shift
+      done
+
+      LC_ALL=C /usr/sbin/ioreg -r -c IOHIDDevice -l -w0 2>/dev/null | LC_ALL=C awk -v cfg="$cfg" '
+      BEGIN {
+        held_count = 0; missing_count = 0; excluded_count = 0
+        # The characters below are written as sprintf("%c", …) because this awk
+        # lives in a heredoc whose escapes are Ruby: a literal quote, tab or
+        # newline in the program text would have to be doubled twice over. An
+        # apostrophe in the program would end the shell single-quoted string too.
+        q = sprintf("%c", 34)     # quote
+        tab = sprintf("%c", 9)    # tab
+        nl = sprintf("%c", 10)    # newline
+        cr = sprintf("%c", 13)    # carriage return
+        semi = sprintf("%c", 59)  # semicolon
+
+        # --- the exclusion list in the config ---
+        if (cfg != "") {
+          text = ""
+          while ((getline line < cfg) > 0)
+            text = text line nl
+          close(cfg)
+
+          # Drop `;` comments, which kanata ends at the newline, outside strings.
+          clean = ""
+          instring = 0
+          for (i = 1; i <= length(text); i++) {
+            c = substr(text, i, 1)
+            if (instring) {
+              clean = clean c
+              if (c == q) instring = 0
+              continue
+            }
+            if (c == q) { instring = 1; clean = clean c; continue }
+            if (c == semi) {
+              while (i <= length(text) && substr(text, i, 1) != nl) i++
+              continue
+            }
+            clean = clean c
+          }
+
+          # Tokens: parens, quoted strings, atoms. Only strings carry a value.
+          ntok = 0
+          i = 1
+          while (i <= length(clean)) {
+            c = substr(clean, i, 1)
+            if (c == " " || c == nl || c == tab || c == cr) { i++; continue }
+            if (c == "(" || c == ")") {
+              ntok++; tok[ntok] = c; str[ntok] = 0; i++; continue
+            }
+            if (c == q) {
+              i++
+              s = ""
+              while (i <= length(clean) && substr(clean, i, 1) != q) {
+                s = s substr(clean, i, 1); i++
+              }
+              i++
+              ntok++; tok[ntok] = s; str[ntok] = 1
+              continue
+            }
+            s = ""
+            while (i <= length(clean)) {
+              c = substr(clean, i, 1)
+              if (c == " " || c == nl || c == tab || c == cr || c == "(" || c == ")")
+                break
+              s = s c; i++
+            }
+            ntok++; tok[ntok] = s; str[ntok] = 0
+          }
+
+          # The option and its value, taken from inside the (defcfg …) form only:
+          # a defalias or a deflayer further down names strings too.
+          depth = 0; defcfg = 0; opt = 0
+          for (i = 1; i <= ntok; i++) {
+            if (str[i] == 0 && tok[i] == "(") {
+              depth++
+              if (defcfg == 0 && i + 1 <= ntok && str[i + 1] == 0 && tok[i + 1] == "defcfg")
+                defcfg = depth
+              continue
+            }
+            if (str[i] == 0 && tok[i] == ")") {
+              if (defcfg != 0 && depth == defcfg) defcfg = 0
+              depth--
+              continue
+            }
+            if (defcfg == 0) continue
+            if (str[i] == 0 && tok[i] == "macos-dev-names-exclude") opt = i
+          }
+          if (opt != 0) {
+            j = opt + 1
+            if (str[j] == 0 && tok[j] == "(") {
+              d = 0
+              for (; j <= ntok; j++) {
+                if (str[j] == 0 && tok[j] == "(") { d++; continue }
+                if (str[j] == 0 && tok[j] == ")") { d--; if (d == 0) break; continue }
+                if (str[j] == 1) ex[++nex] = tok[j]
+              }
+            } else if (str[j] == 1) {
+              ex[++nex] = tok[j]
+            }
+          }
+        }
+      }
+
+      function is_excluded(name,   i) {
+        for (i = 1; i <= nex; i++)
+          if (name == ex[i])
+            return 1
+        return 0
+      }
+
       function flush() {
         if (name == "")
           return
         # The keyboard interface only: usage 1/6. Skip the devices kanata
         # itself refuses to register - its own virtual keyboard, and Sidecar,
         # which aborts the grab when seized (the kanata
-        # SKIPPED_VIRTUAL_DEVICE_SUBSTRINGS list).
+        # SKIPPED_VIRTUAL_DEVICE_SUBSTRINGS list) - and the ones the config
+        # tells kanata to skip, which are not a gap any restart could close.
         if (usage != 6)
           return
         lname = tolower(name)
         if (lname ~ /karabiner/ || lname ~ /sidecar/ || name ~ /^ +$/)
           return
+        if (is_excluded(name)) {
+          printf "excluded\\t%s\\t%s\\n", name, loc
+          excluded_count++
+          return
+        }
         status = held ? "held" : "MISSING"
         printf "%s\\t%s\\t%s\\n", status, name, loc
         if (held)
@@ -190,9 +370,10 @@ class Kxkanata < Formula
         else
           missing_count++
       }
-      /^\\+\\-o /                  { flush(); name=""; usage=""; loc=""; held=0; inlib=0; next }
-      /^ *\\+\\-o IOHIDLibUserClient/ { inlib=1; next }
-      /^ *\\+\\-o /                 { inlib=0 }
+
+      /^\\+-o /                     { flush(); name=""; usage=""; loc=""; held=0; inlib=0; next }
+      /^ *\\+-o IOHIDLibUserClient/ { inlib=1; next }
+      /^ *\\+-o /                   { inlib=0 }
       /"Product" =/ {
         if (name == "") {
           line = $0
@@ -206,7 +387,7 @@ class Kxkanata < Formula
       /IOUserClientCreator/        { if (inlib && /, kanata/) held = 1 }
       END {
         flush()
-        if (held_count + missing_count == 0)
+        if (held_count + missing_count + excluded_count == 0)
           exit 3
         if (missing_count > 0 && held_count > 0)
           exit 1
@@ -423,9 +604,19 @@ class Kxkanata < Formula
       not cover. `kxkanata-devices` prints the list; what it restarts on is in
       the log under "keyboard attached but not grabbed".
 
+      The devices the config tells kanata to skip are part of that judgement,
+      which is why the service passes it `--cfg <kanata.kbd>`: a name in
+      `macos-dev-names-exclude` is printed as `excluded`, not as a gap, since
+      kanata filters it out of the list it registers from and no restart can
+      change that. Run it without `--cfg` and such a device reads as a keyboard
+      that was not grabbed - true of kanata, and not a thing to restart over. A
+      mouse can end up on that list because its Bluetooth HID service reports
+      primary usage keyboard: a Logitech MX Anywhere 2 publishes the keyboard
+      collection first and carries the pointer in the same device.
+
         sudo brew services start kxkanata     # start it, and at boot
         brew services info kxkanata           # what is running
-        #{HOMEBREW_PREFIX}/bin/kxkanata-devices        # what is grabbed, what is not
+        #{HOMEBREW_PREFIX}/bin/kxkanata-devices --cfg="$HOME/Library/Application Support/kanata/kanata.kbd"
         tail -f #{HOMEBREW_PREFIX}/var/log/kxkanata.log
     EOS
   end
