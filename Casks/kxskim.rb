@@ -1,6 +1,6 @@
 cask "kxskim" do
   version "1.7.17"
-  sha256 "7538469605ad5330e6807469b6d77bd50afe04b9753d62ec57f4e305a2f3fcf2"
+  sha256 "67b4677229d7bdc02fc80ab6e427c6c40aaaaec3acbc8a2c93bd726db8590e9c"
 
   url "https://github.com/kvndrsslr/skim/releases/download/v#{version}/Skim-#{version}.dmg"
 
