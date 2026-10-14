@@ -1,6 +1,6 @@
-cask "skim-nobar" do
+cask "kxskim" do
   version "1.7.17"
-  sha256 "6f9d96075ee095c289609f19636b9870681b4e9101602d3a5d102870a054d6b6"
+  sha256 "7538469605ad5330e6807469b6d77bd50afe04b9753d62ec57f4e305a2f3fcf2"
 
   url "https://github.com/kvndrsslr/skim/releases/download/v#{version}/Skim-#{version}.dmg"
 
@@ -30,11 +30,21 @@ cask "skim-nobar" do
   binary "#{appdir}/Skim.app/Contents/SharedSupport/skimnotes"
   binary "#{appdir}/Skim.app/Contents/SharedSupport/skimpdf"
 
-  caveats <<~EOS
-    This build is ad-hoc signed (no Developer ID), so Gatekeeper rejects the
-    quarantined download. Install it without the quarantine flag:
+  # The build is ad-hoc signed and cannot be notarized (no Developer ID
+  # certificate exists for it), so Gatekeeper balks at the quarantine flag brew
+  # propagates onto the staged bundle and refuses the launch. Clearing that flag
+  # on the installed app is what makes a plain `brew install --cask` work.
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/Skim.app"]
+  end
 
-      brew install --cask --no-quarantine #{token}
+  caveats <<~EOS
+    This build is ad-hoc signed (no Developer ID, hence no notarization), so the
+    quarantine flag macOS puts on downloaded apps makes Gatekeeper reject it.
+    This cask clears that flag from the installed app. On other machines you can
+    instead keep brew's hands off the attribute:
+
+      HOMEBREW_CASK_OPTS="--no-quarantine" brew install --cask #{token}
 
     "Check for Updates" inside the app reaches upstream's appcast and therefore
     offers plain Skim, which replaces this build.
