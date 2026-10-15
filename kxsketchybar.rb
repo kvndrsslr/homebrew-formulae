@@ -4,7 +4,7 @@ class Kxsketchybar < Formula
   url "https://github.com/kvndrsslr/SketchyBar.git",
       tag:      "v2.24.0-daily.2",
       revision: "46f85cc2a6a28abeca9d6ef67170241d5f70eb7e"
-  head "https://github.com/kvndrsslr/SketchyBar.git", branch: "daily"
+  head "https://github.com/kvndrsslr/SketchyBar.git", branch: "master"
   license "GPL-3.0-only"
   version "2.24.0-daily.2"
 
