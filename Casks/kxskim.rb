@@ -2,11 +2,11 @@ cask "kxskim" do
   version "1.7.17.3"
   sha256 "26b2bd3541ebd19d1b2185c1d7137d0e1b6c5d5d626090e6d0b39c418742e9b1"
 
-  url "https://github.com/kvndrsslr/skim/releases/download/v#{version}/Skim-#{version}.dmg"
+  url "https://github.com/kvndrsslr/kxskim/releases/download/v#{version}/Skim-#{version}.dmg"
 
   name "Skim"
   desc "PDF reader and note-taking application, with a title bar that hides until hovered"
-  homepage "https://github.com/kvndrsslr/skim"
+  homepage "https://github.com/kvndrsslr/kxskim"
 
   livecheck do
     url :url
