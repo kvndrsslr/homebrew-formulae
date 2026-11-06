@@ -25,12 +25,17 @@ class Kxdesk < Formula
   end
 
   service do
-    run [opt_bin/"kxdesk", "daemon"]
+    # The bundle, not the bare binary: macOS keys the daemon's Accessibility
+    # grant - the one the event tap needs - to the bundle identifier, where a
+    # bare Mach-O's grant is keyed to a hash that every build changes and so is
+    # asked for again after every upgrade. `opt_prefix` is stable across
+    # `HEAD-<sha>` installs, which a plain `Cellar` path would not be.
+    run [opt_prefix/"kxdesk.app/Contents/MacOS/kxdesk", "daemon"]
     keep_alive true
     process_type :interactive
-    # Without these the daemon's output goes nowhere, and a failing command -
-    # a kanata action that could not be carried out, a bar update that was
-    # refused - is silent. The same paths the core kanata formula uses.
+    # Without these the daemon's output goes nowhere, and a failing command - a
+    # key binding that could not be carried out, a bar update that was refused -
+    # is silent.
     log_path var/"log/kxdesk.log"
     error_log_path var/"log/kxdesk.log"
   end
