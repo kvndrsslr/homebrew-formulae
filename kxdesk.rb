@@ -54,8 +54,10 @@ class Kxdesk < Formula
 
   def caveats
     <<~EOS
-      The event tap needs one Accessibility grant, which macOS asks for on the first
-      start: System Settings > Privacy & Security > Accessibility, "kxdesk".
+      The event tap needs two grants: Accessibility, which macOS asks for on the
+      first start (System Settings > Privacy & Security > Accessibility, "kxdesk"),
+      and Input Monitoring for the same app - `kxdesk hotkey grant` shows that
+      dialog.
 
       The service signs both bundles with a local certificate as it starts, so a
       grant survives an upgrade; start the service before installing the grabber.
